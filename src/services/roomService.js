@@ -1,5 +1,4 @@
-// src/services/roomService.js
-// Prisma-compatible dummy service (in-memory) with validations
+const prisma = require('./prismaClient');
 
 let rooms = [
     {
@@ -20,36 +19,47 @@ let rooms = [
 let participants = [];
 
 async function createRoom(data) {
-    if (!data || !data.host_id || !data.name) {
-        throw new Error("host_id and name are required");
+    if (!data) {
+        throw new Error("data missing");
     }
 
-    const newRoom = {
-        id: rooms.length + 1,
-        host_id: Number(data.host_id),
-        name: data.name,
-        password: data.password ?? null,
-        entry_cost: data.entry_cost ?? 0,
-        start_time: data.start_time ? new Date(data.start_time) : new Date(),
-        end_time: data.end_time ? new Date(data.end_time) : new Date(),
-        image_url: data.image_url ?? null,
-        prizepool: 0,
-        created_at: new Date(),
-        updated_at: new Date()
+    const createPayload = {
+        data: {
+            room_code: Number(data.room_code),
+            name: data.name,
+            description: data.description ?? null,
+            img_url: data.image_url ?? null,
+            cost: data.cost ?? 0,
+            end_date: new Date(data.end_date)
+        }
     };
 
-    rooms.push(newRoom);
-    return newRoom;
+    try{
+        const room = await prisma.Rooms.create(createPayload);
+        return room;
+    } catch (err){
+        if (err.code === 'P2002') {
+            const target = err.meta && err.meta.target ? err.meta.target.join(',') : 'unique field';
+            throw new Error(`Unique constraint failed on: ${target}`);
+        }
+        throw err;
+    }
 }
 
 async function listRooms() {
-    return rooms;
+    return await prisma.Rooms.findMany();
 }
 
 async function fetchRoomById(roomId) {
-    const room = rooms.find(r => r.id === Number(roomId));
-    if (!room) throw new Error("Room not found");
-    return room;
+    try {
+        const room = await prisma.rooms.findUnique({
+            where: { id: Number(roomId) },
+        });
+        return room;
+    } catch (error) {
+        console.error("Error fetching room by ID:", error);
+        throw error;
+    }
 }
 
 async function joinRoom(roomId, userId) {
