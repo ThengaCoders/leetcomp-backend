@@ -7,3 +7,54 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+enum RoomStatus {
+  ONGOING
+  FINISHED
+}
+
+model User {
+  id              Int        @id @default(autoincrement())
+  name            String
+  email           String     @unique
+  leetcode_handle String     @unique
+  avatar_url      String?
+
+  createdRooms    Rooms[]      @relation("room_creator")
+  rooms           RoomUser[]
+
+  @@map("users")
+}
+
+model Rooms {
+  id                Int         @id @default(autoincrement())
+  room_code         Int         @unique
+  description       String?
+  name              String
+  img_url           String?
+  cost              Int
+  participant_count Int         @default(1)
+  created_by        Int?
+  created_at        DateTime    @default(now())
+  end_date          DateTime
+  status            RoomStatus  @default(ONGOING)
+
+  createdBy         User?        @relation("room_creator", fields: [created_by], references: [id])
+
+  participants      RoomUser[]
+  @@map("rooms")
+}
+
+model RoomUser {
+  id               Int      @id @default(autoincrement())
+  room_id          Int
+  user_id          Int
+  initial_qn_count Int
+  final_qn_count   Int?
+
+  room             Rooms    @relation(fields: [room_id], references: [id])
+  user             User     @relation(fields: [user_id], references: [id])
+
+  @@map("room_user")
+  @@unique([room_id, user_id])
+}
