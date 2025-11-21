@@ -13,7 +13,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/SmithinJRaj/login-backend/issues"
   },
@@ -30,7 +29,6 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
-    "prisma": "^6.19.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

@@ -3,26 +3,57 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String?
-  googleId     String?  @unique
-  picture      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  username        String   @unique
+  email           String   @unique
+  password        String
+  leetcode_handle String?  @unique
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+
+  participants Participant[]
+  rooms        Room[] // rooms where this user is host
+
+  @@map("users")
 }
 
-model Session {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  createdAt DateTime @default(now())
-  expiresAt DateTime
+model Room {
+  id         Int      @id @default(autoincrement())
+  host_id    Int
+  name       String
+  password   String?
+  entry_cost Int
+  start_time DateTime @db.Timestamp(6)
+  end_time   DateTime @db.Timestamp(6)
+  image_url  String?
+  prizepool  Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  participants Participant[]
+
+  // host relation: deleting a user who is a host is restricted (Option B)
+  host User @relation(fields: [host_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@map("rooms")
+}
+
+model Participant {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  room_id         Int
+  joined_at       DateTime  @default(now()) @db.Timestamp(6)
+  paid            Boolean   @default(false)
+  problems_solved Int       @default(0)
+  last_solve_time DateTime? @db.Timestamp(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  room Room @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, room_id])
+  @@map("participants")
 }
