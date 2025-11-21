@@ -13,41 +13,46 @@ enum RoomStatus {
 }
 
 model User {
-  id              Int        @id @default(autoincrement())
-  name            String
+  id              String     @id @default(cuid())
+  username        String?    @unique
+  name            String?
+  googleId        String     @unique
   email           String     @unique
-  leetcode_handle String     @unique
+  leetcode_handle String?    @unique
   avatar_url      String?
-
-  createdRooms    Rooms[]      @relation("room_creator")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  createdRooms    Rooms[]    @relation("room_creator")
   rooms           RoomUser[]
+  sessions        Session[]
 
   @@map("users")
 }
 
 model Rooms {
-  id                Int         @id @default(autoincrement())
+  id                String      @id @default(cuid())
   room_code         Int         @unique
   description       String?
   name              String
   img_url           String?
   cost              Int
   participant_count Int         @default(1)
-  created_by        Int?
+  created_by        String?
   created_at        DateTime    @default(now())
   end_date          DateTime
   status            RoomStatus  @default(ONGOING)
 
-  createdBy         User?        @relation("room_creator", fields: [created_by], references: [id])
+  createdBy         User?       @relation("room_creator", fields: [created_by], references: [id])
 
   participants      RoomUser[]
   @@map("rooms")
 }
 
 model RoomUser {
-  id               Int      @id @default(autoincrement())
-  room_id          Int
-  user_id          Int
+  id               String      @id @default(cuid())
+  room_id          String
+  user_id          String
   initial_qn_count Int
   final_qn_count   Int?
 
@@ -56,4 +61,13 @@ model RoomUser {
 
   @@map("room_user")
   @@unique([room_id, user_id])
+}
+
+model Session {
+  id               String      @id @default(cuid())
+  token            String      @unique
+  userId           String
+  expiresAt        DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

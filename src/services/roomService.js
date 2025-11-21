@@ -53,7 +53,7 @@ async function listRooms() {
 async function fetchRoomById(roomId) {
     try {
         const room = await prisma.rooms.findUnique({
-            where: { id: Number(roomId) },
+            where: { id: roomId },
         });
         return room;
     } catch (error) {
