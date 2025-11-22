@@ -8,23 +8,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  googleId  String    @unique
+  email     String    @unique
   name      String?
-  googleId  String?  @unique
   picture   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  sessions Session[] // 👈 Add this to define the reverse relation
+  username  String?   @unique
+  leetcode  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
 }
 
 model Session {
-  id        String   @id @default(uuid())
-  userId    String
+  id        String   @id @default(cuid())
   token     String   @unique
-  createdAt DateTime @default(now())
+  userId    String
   expiresAt DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
