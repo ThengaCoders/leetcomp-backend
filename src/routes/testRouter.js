@@ -1,9 +1,10 @@
-const router = require("express").Router();
-const pool = require("../config/db");
+import express from "express";
+const router = express.Router();
+import pool from '../config/db.js';
 
 router.get("/", async (req, res) => {
     const result = await pool.query("SELECT NOW()");
     res.json(result.rows);
 });
 
-module.exports = router;
+export default router;
