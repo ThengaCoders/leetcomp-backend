@@ -1,4 +1,4 @@
-const prisma = require('./prismaClient');
+import { prisma } from './prismaClient.js';
 
 let rooms = [
     {
@@ -18,7 +18,7 @@ let rooms = [
 
 let participants = [];
 
-async function createRoom(data) {
+export async function createRoom(data) {
     if (!data) {
         throw new Error("data missing");
     }
@@ -46,11 +46,11 @@ async function createRoom(data) {
     }
 }
 
-async function listRooms() {
+export async function listRooms() {
     return await prisma.Rooms.findMany();
 }
 
-async function fetchRoomById(roomId) {
+export async function fetchRoomById(roomId) {
     try {
         const room = await prisma.rooms.findUnique({
             where: { id: roomId },
@@ -62,7 +62,7 @@ async function fetchRoomById(roomId) {
     }
 }
 
-async function joinRoom(roomId, userId) {
+export async function joinRoom(roomId, userId) {
     // 1) Ensure room exists
     const room = rooms.find(r => r.id === Number(roomId));
     if (!room) {
@@ -97,9 +97,3 @@ async function joinRoom(roomId, userId) {
     return p;
 }
 
-module.exports = {
-    createRoom,
-    listRooms,
-    fetchRoomById,
-    joinRoom
-};

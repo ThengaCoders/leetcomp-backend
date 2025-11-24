@@ -1,5 +1,5 @@
-const roomService = require("../services/roomService")
-async function createRoom(req, res) {
+import * as roomService from '../services/roomService.js';
+export const createRoom= async (req, res)=> {
 
     try {
         const result = await roomService.createRoom(req.body);
@@ -9,7 +9,7 @@ async function createRoom(req, res) {
     }
 }
 
-async function listRooms(req, res) {
+export const listRooms= async(req, res)=>{
     try {
         const rooms = await roomService.listRooms();
         res.json(rooms);
@@ -18,7 +18,7 @@ async function listRooms(req, res) {
     }
 }
 
-async function fetchRoomById(req, res) {
+export const fetchRoomById=async(req, res)=>{
     try {
         const result = await roomService.fetchRoomById(req.params.roomId);
         res.json(result);
@@ -27,7 +27,7 @@ async function fetchRoomById(req, res) {
     }
 }
 
-async function joinRoom(req, res) {
+export const joinRoom=async (req, res)=>{
     try {
         const result = await roomService.joinRoom(req.params.roomId,req.body.userId);
         res.json(result);
@@ -35,5 +35,3 @@ async function joinRoom(req, res) {
         res.status(400).json({ error: error.message });
     }
 }
-
-module.exports = { createRoom, joinRoom, fetchRoomById, listRooms };
