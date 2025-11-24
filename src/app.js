@@ -1,10 +1,17 @@
 import express from "express";
 import cors from "cors";
+import bodyParser from 'body-parser';
 import paymentsRoute from './routes/payments.js';
 import roomRouter from './routes/roomRouter.js';
+import { webhookHandler } from "./controllers/paymentsController.js";
 const app = express();
 
 app.use(cors());
+
+app.post("/api/payments/webhook",
+  bodyParser.raw({ type: "application/json" }),
+    webhookHandler
+);
 app.use(express.json());
 
 // ROUTES
