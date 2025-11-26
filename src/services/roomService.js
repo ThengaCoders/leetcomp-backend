@@ -34,10 +34,10 @@ export async function createRoom(data) {
         }
     };
 
-    try{
+    try {
         const room = await prisma.Rooms.create(createPayload);
         return room;
-    } catch (err){
+    } catch (err) {
         if (err.code === 'P2002') {
             const target = err.meta && err.meta.target ? err.meta.target.join(',') : 'unique field';
             throw new Error(`Unique constraint failed on: ${target}`);
@@ -63,37 +63,59 @@ export async function fetchRoomById(roomId) {
 }
 
 export async function joinRoom(roomId, userId) {
-    // 1) Ensure room exists
-    const room = rooms.find(r => r.id === Number(roomId));
-    if (!room) {
-        throw new Error("Room does not exist");
-    }
+    // Check room exists
+    const room = await prisma.Rooms.findUnique({
+        where: { id: roomId }
+    });
+    if (!room) throw new Error("Room does not exist");
 
-    // 2) Prevent duplicate join (use the same keys we store)
-    const exists = participants.find(
-        p => p.room_id === Number(roomId) && p.user_id === Number(userId)
-    );
+    // Check user exists
+    const user = await prisma.User.findUnique({
+        where: { id: userId }
+    });
+    if (!user) throw new Error("User does not exist");
 
-    if (exists) {
-        throw new Error("User already joined");
-    }
+    // Check duplicate
+    const exists = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: { room_id: roomId, user_id: userId }
+        }
+    });
+    if (exists) throw new Error("Already joined");
 
-    // 3) Create participant and (optionally) update prizepool
-    const p = {
-        id: participants.length + 1,
-        room_id: Number(roomId),
-        user_id: Number(userId),
-        joined_at: new Date(),
-        paid: true,
-        problems_solved: 0,
-        last_solve_time: null
-    };
+    // Create record with placeholder solved counts
+    return await prisma.RoomUser.create({
+        data: {
+            room_id: roomId,
+            user_id: userId,
+            initial_qn_count: 0,
+            final_qn_count: 0
+        }
+    });
+}
 
-    participants.push(p);
 
-    // Optional: update prizepool in dummy (mirror real behavior)
-    // room.prizepool += room.entry_cost;
+export async function getLeaderboard(roomId) {
+    const rows = await prisma.RoomUser.findMany({
+        where: { room_id: roomId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    picture: true
+                }
+            }
+        }
+    });
 
-    return p;
+    return rows
+        .map(r => ({
+            user: r.user,
+            initial: r.initial_qn_count,
+            final: r.final_qn_count ?? r.initial_qn_count,
+            score: (r.final_qn_count ?? r.initial_qn_count) - r.initial_qn_count
+        }))
+        .sort((a, b) => b.score - a.score);
 }
 
