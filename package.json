@@ -2,10 +2,11 @@
   "name": "login-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js"
+    "dev": " nodemon src/server.js"
   },
   "repository": {
     "type": "git",
@@ -14,7 +15,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/SmithinJRaj/login-backend/issues"
   },
@@ -22,6 +22,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
@@ -34,9 +35,17 @@
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "prisma": "^6.19.0",
+    "razorpay": "^2.9.6",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "nodemon": "^3.1.11"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
   }
 }

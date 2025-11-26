@@ -3,27 +3,90 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+enum RoomStatus {
+  ONGOING
+  FINISHED
+}
+
 model User {
-  id        String    @id @default(cuid())
-  googleId  String    @unique
-  email     String    @unique
-  name      String?
-  picture   String?
-  username  String?   @unique
-  leetcode  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  sessions  Session[]
+  id              String     @id @default(cuid())
+  username        String?    @unique
+  name            String?
+  googleId        String     @unique
+  email           String     @unique
+  leetcode        String?    
+  picture         String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  createdRooms    Rooms[]    @relation("room_creator")
+  rooms           RoomUser[]
+  sessions        Session[]
+  orders          Order[]
+
+
+  @@map("users")
+}
+
+model Rooms {
+  id                String      @id @default(cuid())
+  room_code         Int         @unique
+  description       String?
+  name              String
+  img_url           String?
+  cost              Int
+  participant_count Int         @default(1)
+  created_by        String?
+  created_at        DateTime    @default(now())
+  end_date          DateTime
+  status            RoomStatus  @default(ONGOING)
+
+  createdBy         User?       @relation("room_creator", fields: [created_by], references: [id])
+  orders            Order[]
+  participants      RoomUser[]
+  @@map("rooms")
+}
+
+model RoomUser {
+  id               String      @id @default(cuid())
+  room_id          String
+  user_id          String
+  initial_qn_count Int
+  final_qn_count   Int?
+
+  room             Rooms    @relation(fields: [room_id], references: [id])
+  user             User     @relation(fields: [user_id], references: [id])
+
+  @@map("room_user")
+  @@unique([room_id, user_id])
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String      @id @default(cuid())
+  token            String      @unique
+  userId           String
+  expiresAt        DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                 String   @id @default(uuid())
+  razorpayOrderId    String   @unique
+  razorpayPaymentId  String?
+  amount             Int
+  currency           String   @default("INR")
+  receipt            String?
+  status             String   @default("created") 
+  userId             String?
+  roomId             String?
+  user               User?    @relation(fields: [userId], references: [id])
+  room               Rooms?   @relation(fields: [roomId], references: [id])
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

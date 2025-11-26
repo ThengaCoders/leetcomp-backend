@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+import app from './app.js';
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -26,5 +29,5 @@ app.use("/auth", authRoutes);
 // Health check
 app.get("/", (req, res) => res.send("API is running"));
 
-const PORT = process.env.PORT || 5173;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
