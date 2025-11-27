@@ -18,14 +18,14 @@ let rooms = [
 
 let participants = [];
 
-export async function createRoom(data, user_id) {
+export async function createRoom(data, userId) {
     if (!data) {
         throw new Error("data missing");
     }
 
     const createPayload = {
         data: {
-            created_by: user_id,
+            created_by: userId,
             room_code: Number(data.room_code),
             name: data.name,
             description: data.description ?? null,
