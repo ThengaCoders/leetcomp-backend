@@ -18,13 +18,14 @@ let rooms = [
 
 let participants = [];
 
-export async function createRoom(data) {
+export async function createRoom(data, userId) {
     if (!data) {
         throw new Error("data missing");
     }
 
     const createPayload = {
         data: {
+            created_by: userId,
             room_code: Number(data.room_code),
             name: data.name,
             description: data.description ?? null,
@@ -46,8 +47,10 @@ export async function createRoom(data) {
     }
 }
 
-export async function listRooms() {
-    return await prisma.Rooms.findMany();
+export async function listRooms(userId) {
+    return await prisma.Rooms.findMany({
+      where: { created_by: userId },
+    });
 }
 
 export async function fetchRoomById(roomId) {

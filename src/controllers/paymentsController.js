@@ -8,7 +8,7 @@ export const createOrder= async (req, res) => {
     })
 
     try{
-        const { amount, currency, receipt="rcpt_"+Date.now(),userId=null,roomId=null } = req.body;
+        const { amount, currency, receipt="rcpt_"+Date.now(), roomId=null } = req.body;
         
         if(!amount || !currency){
             return res.status(400).json({
@@ -30,7 +30,7 @@ export const createOrder= async (req, res) => {
             amount: order.amount,
             currency: order.currency,
             status: "created",
-            userId: userId || null,
+            userId: req.user.id,
             roomId: roomId || null
         },
         });
