@@ -2,7 +2,7 @@ import * as roomService from '../services/roomService.js';
 export const createRoom = async (req, res) => {
 
     try {
-        const result = await roomService.createRoom(req.body);
+        const result = await roomService.createRoom(req.body, req.user.id);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
