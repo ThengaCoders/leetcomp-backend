@@ -47,8 +47,10 @@ export async function createRoom(data, user_id) {
     }
 }
 
-export async function listRooms() {
-    return await prisma.Rooms.findMany();
+export async function listRooms(userId) {
+    return await prisma.Rooms.findMany({
+      where: { created_by: userId },
+    });
 }
 
 export async function fetchRoomById(roomId) {

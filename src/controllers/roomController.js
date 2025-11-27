@@ -11,7 +11,7 @@ export const createRoom = async (req, res) => {
 
 export const listRooms = async (req, res) => {
     try {
-        const rooms = await roomService.listRooms();
+        const rooms = await roomService.listRooms(req.user.id);
         res.json(rooms);
     } catch (error) {
         res.status(400).json({ error: error.message });
