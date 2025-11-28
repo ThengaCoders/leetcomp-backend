@@ -53,6 +53,35 @@ export async function listRooms(userId) {
     });
 }
 
+export async function fetchRoomByCode(roomCode, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: {
+            room_code: parseInt(roomCode)
+        }
+    });
+
+    if (!room) {
+        throw new Error("Room not found");
+    }
+
+    const member = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: room.id,
+                user_id: userId
+            }
+        }
+    });
+
+    const isMember = !!member;
+
+    return {
+        ...room,
+        isMember
+    };
+
+}
+
 export async function fetchRoomById(roomId) {
     try {
         const room = await prisma.rooms.findUnique({

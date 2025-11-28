@@ -18,6 +18,15 @@ export const listRooms = async (req, res) => {
     }
 }
 
+export const fetchRoomByCode = async (req, res) => {
+    try {
+        const result = await roomService.fetchRoomByCode(req.query.code, req.user.id);
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+}
+
 export const fetchRoomById = async (req, res) => {
     try {
         const result = await roomService.fetchRoomById(req.params.roomId);
