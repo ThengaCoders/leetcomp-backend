@@ -31,6 +31,7 @@ import paymentsRoute from "./routes/payments.js";
 import roomRouter from "./routes/roomRouter.js";
 import { webhookHandler } from "./controllers/paymentsController.js";
 
+
 // Payment webhook must use raw body
 app.post(
   "/api/payments/webhook",
@@ -46,6 +47,9 @@ app.use("/auth", authRoutes);
 app.use("/api", leetcodeRoutes);
 app.use("/api/rooms", roomRouter);
 app.use("/api/payments", paymentsRoute);
+app.get("/time", (req, res) => {
+  res.json({ now: new Date() });
+});
 
 import "./cron/roomCron.js";
 
