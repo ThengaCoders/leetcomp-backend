@@ -29,21 +29,12 @@ export const fetchRoomByCode = async (req, res) => {
 
 export const fetchRoomById = async (req, res) => {
     try {
-        const result = await roomService.fetchRoomById(req.params.roomId);
+        const result = await roomService.fetchRoomById(req.params.roomId, req.user.id);
         res.json(result);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(error.statusCode || 400).json({ error: error.message });
     }
 }
-
-export const fetchLeaderboard = async (req, res) => {
-    try {
-        const data = await roomService.getLeaderboard(req.params.roomId);
-        res.json(data);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-};
 
 export const joinRoom = async (req, res) => {
     try {

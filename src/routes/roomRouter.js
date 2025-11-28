@@ -8,8 +8,6 @@ router.get("/", roomController.listRooms);
 
 router.get("/search", roomController.fetchRoomByCode);
 
-router.get("/:roomId/leaderboard", roomController.fetchLeaderboard);
-
 router.get("/:roomId", roomController.fetchRoomById);
 
 router.post("/:roomId/join", roomController.joinRoom);
