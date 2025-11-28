@@ -38,7 +38,7 @@ export const fetchRoomById = async (req, res) => {
 
 export const joinRoom = async (req, res) => {
     try {
-        const result = await roomService.joinRoom(req.params.roomId, req.body.userId);
+        const result = await roomService.joinRoom(req.params.roomId, req.user.id, req.user.leetcode);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });

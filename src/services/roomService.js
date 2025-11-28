@@ -1,4 +1,5 @@
 import { prisma } from './prismaClient.js';
+import { getLeetCodeTotalSolved } from '../utils/getLeetCodeTotalSolved.js';
 
 let rooms = [
     {
@@ -132,7 +133,7 @@ export async function fetchRoomById(roomId, userId) {
     };
 }
 
-export async function joinRoom(roomId, userId) {
+export async function joinRoom(roomId, userId, leetcodeId) {
     // Check room exists
     const room = await prisma.Rooms.findUnique({
         where: { id: roomId }
@@ -152,13 +153,15 @@ export async function joinRoom(roomId, userId) {
         }
     });
     if (exists) throw new Error("Already joined");
+    
+    const initial_qn_count = await getLeetCodeTotalSolved(leetcodeId);
 
     // Create record with placeholder solved counts
     return await prisma.RoomUser.create({
         data: {
             room_id: roomId,
             user_id: userId,
-            initial_qn_count: 0,
+            initial_qn_count,
             final_qn_count: 0
         }
     });
