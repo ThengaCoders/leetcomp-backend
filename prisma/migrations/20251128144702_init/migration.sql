@@ -5,8 +5,8 @@ CREATE TABLE "users" (
     "name" TEXT,
     "googleId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "leetcode_handle" TEXT,
-    "avatar_url" TEXT,
+    "leetcode" TEXT,
+    "picture" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -20,11 +20,11 @@ CREATE TABLE "rooms" (
     "img_url" TEXT,
     "cost" INTEGER NOT NULL,
     "participant_count" INTEGER NOT NULL DEFAULT 1,
-    "created_by" TEXT,
+    "created_by" TEXT NOT NULL,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "end_date" DATETIME NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'ONGOING',
-    CONSTRAINT "rooms_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "rooms_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -47,6 +47,24 @@ CREATE TABLE "Session" (
     CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "Order" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "razorpayOrderId" TEXT NOT NULL,
+    "razorpayPaymentId" TEXT,
+    "amount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'INR',
+    "receipt" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'created',
+    "userId" TEXT,
+    "roomId" TEXT,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Order_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "rooms" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
 
@@ -57,9 +75,6 @@ CREATE UNIQUE INDEX "users_googleId_key" ON "users"("googleId");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_leetcode_handle_key" ON "users"("leetcode_handle");
-
--- CreateIndex
 CREATE UNIQUE INDEX "rooms_room_code_key" ON "rooms"("room_code");
 
 -- CreateIndex
@@ -67,3 +82,6 @@ CREATE UNIQUE INDEX "room_user_room_id_user_id_key" ON "room_user"("room_id", "u
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Order_razorpayOrderId_key" ON "Order"("razorpayOrderId");
