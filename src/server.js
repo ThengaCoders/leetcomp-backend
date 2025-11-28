@@ -47,6 +47,8 @@ app.use("/api", leetcodeRoutes);
 app.use("/api/rooms", roomRouter);
 app.use("/api/payments", paymentsRoute);
 
+import "./cron/roomCron.js";
+
 // Health check
 app.get("/", (req, res) => res.send("Backend running"));
 

@@ -38,9 +38,27 @@ export const fetchLeaderboard = async (req, res) => {
 
 export const joinRoom = async (req, res) => {
     try {
-        const result = await roomService.joinRoom(req.params.roomId, req.body.userId);
+        const roomId = req.params.roomId;
+        const userId = req.user.id;   // ← FIXED (comes from auth middleware)
+
+        const result = await roomService.joinRoom(roomId, userId);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
+
+export const submitFinal = async (req, res) => {
+    try {
+        const roomId = req.params.roomId;
+        const userId = req.user.id;
+        const { final_qn_count } = req.body;
+
+        const result = await roomService.submitFinal(roomId, userId, final_qn_count);
+
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+

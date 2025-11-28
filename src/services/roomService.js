@@ -70,13 +70,13 @@ export async function joinRoom(roomId, userId) {
     if (!room) throw new Error("Room does not exist");
 
     // Check user exists
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
         where: { id: userId }
     });
     if (!user) throw new Error("User does not exist");
 
     // Check duplicate
-    const exists = await prisma.RoomUser.findUnique({
+    const exists = await prisma.roomUser.findUnique({
         where: {
             room_id_user_id: { room_id: roomId, user_id: userId }
         }
@@ -118,4 +118,63 @@ export async function getLeaderboard(roomId) {
         }))
         .sort((a, b) => b.score - a.score);
 }
+
+
+export async function submitFinal(roomId, userId, finalCount) {
+    // Validate number
+    if (!Number.isInteger(finalCount)) {
+        throw new Error("final_qn_count must be an integer");
+    }
+
+    // Fetch room
+    const room = await prisma.Rooms.findUnique({
+        where: { id: roomId }
+    });
+    if (!room) throw new Error("Room not found");
+
+    const now = new Date();
+    if (now < room.end_date) {
+        throw new Error("Room has not ended yet");
+    }
+
+    // Fetch participant entry
+    const participant = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: roomId,
+                user_id: userId
+            }
+        }
+    });
+
+    if (!participant) {
+        throw new Error("You are not a participant of this room");
+    }
+
+    if (participant.final_qn_count !== null) {
+        throw new Error("Final count already submitted");
+    }
+
+    // Validate logical boundaries
+    if (finalCount < participant.initial_qn_count) {
+        throw new Error("Final count cannot be less than initial count");
+    }
+
+    const MAX_DELTA = 500; // prevent cheating
+    if (finalCount > participant.initial_qn_count + MAX_DELTA) {
+        throw new Error("Unrealistic final count submitted");
+    }
+
+    // Save the final count
+    await prisma.RoomUser.update({
+        where: { id: participant.id },
+        data: {
+            final_qn_count: finalCount
+        }
+    });
+
+    return { success: true, message: "Final count submitted successfully" };
+}
+
+
 
