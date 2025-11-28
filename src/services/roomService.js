@@ -53,16 +53,83 @@ export async function listRooms(userId) {
     });
 }
 
-export async function fetchRoomById(roomId) {
-    try {
-        const room = await prisma.rooms.findUnique({
-            where: { id: roomId },
-        });
-        return room;
-    } catch (error) {
-        console.error("Error fetching room by ID:", error);
-        throw error;
+export async function fetchRoomByCode(roomCode, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: {
+            room_code: parseInt(roomCode)
+        }
+    });
+
+    if (!room) {
+        throw new Error("Room not found");
     }
+
+    const member = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: room.id,
+                user_id: userId
+            }
+        }
+    });
+
+    const isMember = !!member;
+
+    return {
+        ...room,
+        isMember
+    };
+
+}
+
+export async function fetchRoomById(roomId, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: { id: roomId }
+    });
+
+    if (!room) {
+        throw new Error("Room not found");
+    }
+
+    const membership = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: roomId,
+                user_id: userId
+            }
+        }
+    });
+
+    if (!membership) {
+        const err = new Error("Forbidden: You are not a member of this room");
+        err.statusCode = 403;
+        throw err;
+    }
+
+    const members = await prisma.RoomUser.findMany({
+        where: { room_id: roomId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    picture: true
+                }
+            }
+        }
+    });
+
+    const formattedMembers = members.map(m => ({
+        userId: m.user.id,
+        username: m.user.username,
+        picture: m.user.picture,
+        initial_qn_count: m.initial_qn_count
+    }));
+
+    return {
+        room,
+        members: formattedMembers
+    };
 }
 
 export async function joinRoom(roomId, userId) {
@@ -96,29 +163,3 @@ export async function joinRoom(roomId, userId) {
         }
     });
 }
-
-
-export async function getLeaderboard(roomId) {
-    const rows = await prisma.RoomUser.findMany({
-        where: { room_id: roomId },
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                    picture: true
-                }
-            }
-        }
-    });
-
-    return rows
-        .map(r => ({
-            user: r.user,
-            initial: r.initial_qn_count,
-            final: r.final_qn_count ?? r.initial_qn_count,
-            score: (r.final_qn_count ?? r.initial_qn_count) - r.initial_qn_count
-        }))
-        .sort((a, b) => b.score - a.score);
-}
-
