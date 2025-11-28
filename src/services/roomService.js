@@ -1,4 +1,5 @@
 import { prisma } from './prismaClient.js';
+import { getLeetCodeTotalSolved } from '../utils/getLeetCodeTotalSolved.js';
 
 let rooms = [
     {
@@ -18,13 +19,14 @@ let rooms = [
 
 let participants = [];
 
-export async function createRoom(data) {
+export async function createRoom(data, userId) {
     if (!data) {
         throw new Error("data missing");
     }
 
     const createPayload = {
         data: {
+            created_by: userId,
             room_code: Number(data.room_code),
             name: data.name,
             description: data.description ?? null,
@@ -46,23 +48,92 @@ export async function createRoom(data) {
     }
 }
 
-export async function listRooms() {
-    return await prisma.Rooms.findMany();
+export async function listRooms(userId) {
+    return await prisma.Rooms.findMany({
+      where: { created_by: userId },
+    });
 }
 
-export async function fetchRoomById(roomId) {
-    try {
-        const room = await prisma.rooms.findUnique({
-            where: { id: roomId },
-        });
-        return room;
-    } catch (error) {
-        console.error("Error fetching room by ID:", error);
-        throw error;
+export async function fetchRoomByCode(roomCode, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: {
+            room_code: parseInt(roomCode)
+        }
+    });
+
+    if (!room) {
+        throw new Error("Room not found");
     }
+
+    const member = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: room.id,
+                user_id: userId
+            }
+        }
+    });
+
+    const isMember = !!member;
+
+    return {
+        ...room,
+        isMember
+    };
+
 }
 
-export async function joinRoom(roomId, userId) {
+export async function fetchRoomById(roomId, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: { id: roomId }
+    });
+
+    if (!room) {
+        throw new Error("Room not found");
+    }
+
+    const membership = await prisma.RoomUser.findUnique({
+        where: {
+            room_id_user_id: {
+                room_id: roomId,
+                user_id: userId
+            }
+        }
+    });
+
+    if (!membership) {
+        const err = new Error("Forbidden: You are not a member of this room");
+        err.statusCode = 403;
+        throw err;
+    }
+
+    const members = await prisma.RoomUser.findMany({
+        where: { room_id: roomId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    picture: true
+                }
+            }
+        }
+    });
+
+    const formattedMembers = members.map(m => ({
+        userId: m.user.id,
+        username: m.user.username,
+        picture: m.user.picture,
+        initial_qn_count: m.initial_qn_count
+    }));
+
+    return {
+        room,
+        members: formattedMembers
+    };
+}
+
+export async function joinRoom(roomId, userId, leetcodeId) {
     // Check room exists
     const room = await prisma.Rooms.findUnique({
         where: { id: roomId }
@@ -82,13 +153,15 @@ export async function joinRoom(roomId, userId) {
         }
     });
     if (exists) throw new Error("Already joined");
+    
+    const initial_qn_count = await getLeetCodeTotalSolved(leetcodeId);
 
     // Create record with placeholder solved counts
     return await prisma.RoomUser.create({
         data: {
             room_id: roomId,
             user_id: userId,
-            initial_qn_count: 0,
+            initial_qn_count,
             final_qn_count: 0
         }
     });

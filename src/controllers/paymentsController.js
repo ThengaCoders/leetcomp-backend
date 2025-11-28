@@ -1,6 +1,8 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { prisma } from '../services/prismaClient.js';
+import { getLeetCodeTotalSolved } from '../utils/getLeetCodeTotalSolved.js';
+
 export const createOrder= async (req, res) => {
     const razorpay=new Razorpay({
         key_id:process.env.RAZORPAY_KEY_ID,
@@ -8,7 +10,7 @@ export const createOrder= async (req, res) => {
     })
 
     try{
-        const { amount, currency, receipt="rcpt_"+Date.now(),userId=null,roomId=null } = req.body;
+        const { amount, currency, receipt="rcpt_"+Date.now(), roomId=null } = req.body;
         
         if(!amount || !currency){
             return res.status(400).json({
@@ -30,7 +32,7 @@ export const createOrder= async (req, res) => {
             amount: order.amount,
             currency: order.currency,
             status: "created",
-            userId: userId || null,
+            userId: req.user.id,
             roomId: roomId || null
         },
         });
@@ -108,12 +110,20 @@ export const webhookHandler = async (req, res) => {
           razorpayPaymentId: payment.id
         }
       });
+
+      const user = await prisma.user.findUnique({
+        where: { id: updatedOrder.userId },
+        select: { leetcode: true }
+      });
+
+      const initial_qn_count = await getLeetCodeTotalSolved(user.leetcode);
+
       if (updatedOrder.userId && updatedOrder.roomId) {
         await prisma.roomUser.create({
           data: {
             user_id: updatedOrder.userId,
             room_id: updatedOrder.roomId,
-            initial_qn_count: 0,
+            initial_qn_count,
             final_qn_count: 0
           }
         });
