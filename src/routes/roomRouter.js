@@ -1,6 +1,8 @@
 import express from "express";
 const router = express.Router();
 import * as roomController from '../controllers/roomController.js';
+import auth from "../middleware/auth.js";
+
 
 router.post("/", roomController.createRoom);
 
@@ -8,8 +10,10 @@ router.get("/", roomController.listRooms);
 
 router.get("/search", roomController.fetchRoomByCode);
 
-router.get("/:roomId", roomController.fetchRoomById);
+router.post("/:roomId/submit-final", auth, roomController.submitFinal);
 
-router.post("/:roomId/join", roomController.joinRoom);
+router.post("/:roomId/join", auth, roomController.joinRoom);
+
+router.get("/:roomId", roomController.fetchRoomById);
 
 export default router;
