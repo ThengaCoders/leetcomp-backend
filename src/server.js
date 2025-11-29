@@ -9,6 +9,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import bodyParser from "body-parser";
+import auth from "./middleware/auth.js";
 
 const app = express();
 
@@ -44,6 +45,9 @@ app.use(express.json());
 
 // API routes
 app.use("/auth", authRoutes);
+
+app.use(auth);
+
 app.use("/api", leetcodeRoutes);
 app.use("/api/rooms", roomRouter);
 app.use("/api/payments", paymentsRoute);

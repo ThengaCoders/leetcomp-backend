@@ -1,6 +1,8 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { prisma } from '../services/prismaClient.js';
+import { getLeetCodeTotalSolved } from '../utils/getLeetCodeTotalSolved.js';
+
 export const createOrder= async (req, res) => {
     const razorpay=new Razorpay({
         key_id:process.env.RAZORPAY_KEY_ID,
@@ -8,9 +10,17 @@ export const createOrder= async (req, res) => {
     })
 
     try{
-        const { amount, currency, receipt="rcpt_"+Date.now(),userId=null,roomId=null } = req.body;
-        
-        if(!amount || !currency){
+        const { receipt="rcpt_"+Date.now(), roomId } = req.body;
+
+        const room = await prisma.rooms.findUnique({ where: { id: roomId } });
+        if (!room) {
+            return res.status(404).json({ success: false, error: "Room not found" });
+        }
+
+        const amount = room.cost;
+        const currency = "INR";
+
+        if(amount == 0){
             return res.status(400).json({
                 success:false,
                 error:"Invalid data"
@@ -30,8 +40,8 @@ export const createOrder= async (req, res) => {
             amount: order.amount,
             currency: order.currency,
             status: "created",
-            userId: userId || null,
-            roomId: roomId || null
+            userId: req.user.id,
+            roomId: roomId
         },
         });
         
@@ -101,19 +111,27 @@ export const webhookHandler = async (req, res) => {
     if (event.event === "payment.captured") {
       const payment = event.payload.payment.entity;
         
-      const updatedOrder=await prisma.order.updateMany({
+      const updatedOrder=await prisma.order.update({
         where: { razorpayOrderId: payment.order_id },
         data: {
           status: "paid",
           razorpayPaymentId: payment.id
         }
       });
+
+      const user = await prisma.user.findUnique({
+        where: { id: updatedOrder.userId },
+        select: { leetcode: true }
+      });
+
+      const initial_qn_count = await getLeetCodeTotalSolved(user.leetcode);
+
       if (updatedOrder.userId && updatedOrder.roomId) {
         await prisma.roomUser.create({
           data: {
             user_id: updatedOrder.userId,
             room_id: updatedOrder.roomId,
-            initial_qn_count: 0,
+            initial_qn_count,
             final_qn_count: 0
           }
         });

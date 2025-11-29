@@ -40,12 +40,12 @@ model Rooms {
   img_url           String?
   cost              Int
   participant_count Int         @default(1)
-  created_by        String?
+  created_by        String
   created_at        DateTime    @default(now())
   end_date          DateTime
   status            RoomStatus  @default(ONGOING)
 
-  createdBy         User?       @relation("room_creator", fields: [created_by], references: [id])
+  createdBy         User       @relation("room_creator", fields: [created_by], references: [id])
   orders            Order[]
   participants      RoomUser[]
   @@map("rooms")

@@ -8,7 +8,7 @@ router.post("/", roomController.createRoom);
 
 router.get("/", roomController.listRooms);
 
-router.get("/:roomId/leaderboard", roomController.fetchLeaderboard);
+router.get("/search", roomController.fetchRoomByCode);
 
 router.post("/:roomId/join", auth, roomController.joinRoom);
 

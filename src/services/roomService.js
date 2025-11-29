@@ -6,6 +6,7 @@ export async function createRoom(data) {
 
     const createPayload = {
         data: {
+            created_by: userId,
             room_code: Number(data.room_code),
             name: data.name,
             description: data.description ?? null,
@@ -27,8 +28,10 @@ export async function createRoom(data) {
     }
 }
 
-export async function listRooms() {
-    return await prisma.Rooms.findMany();
+export async function listRooms(userId) {
+    return await prisma.Rooms.findMany({
+      where: { created_by: userId },
+    });
 }
 
 export async function fetchRoomById(roomId) {
@@ -43,6 +46,8 @@ export async function joinRoom(roomId, userId) {
         where: { id: roomId }
     });
     if (!room) throw new Error("Room does not exist");
+    
+    if (room.cost != 0) throw new Error("I like your smartness. But don't try to be oversmart.");
 
     // Check user
     const user = await prisma.User.findUnique({
@@ -55,6 +60,8 @@ export async function joinRoom(roomId, userId) {
         where: { room_id_user_id: { room_id: roomId, user_id: userId } }
     });
     if (exists) throw new Error("Already joined");
+    
+    const initial_qn_count = await getLeetCodeTotalSolved(leetcodeId);
 
     // Fetch initial count from LC API
     const initialCount = await fetchLeetCodeSolved(user.leetcode);

@@ -3,6 +3,7 @@ import prisma from "../prisma.js";
 import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
 import auth from "../middleware/auth.js";
+import { validateLeetCodeUsername } from "../utils/validateLeetCode.js";
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -29,7 +30,10 @@ router.post("/onboard", auth, async (req, res) => {
     return res.status(409).json({ error: "Username already exists" });
   }
 
-  // TODO: optional — check LeetCode validity (API call)
+  const isValid = await validateLeetCodeUsername(leetcode);
+  if (!isValid) {
+    return res.status(400).json({ error: "Invalid LeetCode username" });
+  }
 
   // Update user
   const user = await prisma.user.update({
@@ -46,6 +50,7 @@ router.get("/me", auth, async (req, res) => {
     email: req.user.email,
     username: req.user.username,
     leetcode: req.user.leetcode,
+    picture: req.user.picture
   });
 });
 
