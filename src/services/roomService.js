@@ -8,7 +8,7 @@ export async function createRoom(data) {
         data: {
             created_by: userId,
             room_code: Number(data.room_code),
-            name: data.name,
+            roomName: data.name,
             description: data.description ?? null,
             img_url: data.image_url ?? null,
             cost: data.cost ?? 0,

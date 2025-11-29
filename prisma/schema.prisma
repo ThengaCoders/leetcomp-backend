@@ -11,10 +11,14 @@ enum RoomStatus {
   ONGOING
   FINISHED
 }
+enum PayoutStatus {
+  Pending
+  Paid
+}
 
 model User {
   id              String     @id @default(cuid())
-  username        String?    @unique
+  username        String     @unique
   name            String?
   googleId        String     @unique
   email           String     @unique
@@ -22,12 +26,12 @@ model User {
   picture         String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
-  
+  phone           Int
   createdRooms    Rooms[]    @relation("room_creator")
   rooms           RoomUser[]
   sessions        Session[]
   orders          Order[]
-
+  payouts         Payout[]
 
   @@map("users")
 }
@@ -36,18 +40,21 @@ model Rooms {
   id                String      @id @default(cuid())
   room_code         Int         @unique
   description       String?
-  name              String
+  roomName          String
   img_url           String?
   cost              Int
+  prizePool         Int
   participant_count Int         @default(1)
   created_by        String
   created_at        DateTime    @default(now())
   end_date          DateTime
   status            RoomStatus  @default(ONGOING)
-
+  isPayout          boolean     @default(false)
+  winnerUserId      String?
   createdBy         User       @relation("room_creator", fields: [created_by], references: [id])
   orders            Order[]
   participants      RoomUser[]
+  payout            Payout
   @@map("rooms")
 }
 
@@ -56,7 +63,7 @@ model RoomUser {
   room_id          String
   user_id          String
   initial_qn_count Int
-  final_qn_count   Int?
+  final_qn_count   Int
 
   room             Rooms    @relation(fields: [room_id], references: [id])
   user             User     @relation(fields: [user_id], references: [id])
@@ -90,3 +97,22 @@ model Order {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
+
+model Payout {
+  id          String         @id @default(uuid())
+  userId      String
+  username    String
+  roomId      String
+  roomName    String
+  amount      Int
+  phone       Int
+  status      PayoutStatus   @default("Pending") 
+  user        User?          @relation(fields: [userId], references: [id])
+  room        Rooms?         @relation(fields: [roomId], references: [id])
+  utr         String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([roomId, userId]) 
+}
+
