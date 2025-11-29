@@ -95,3 +95,36 @@ export async function getLeaderboard(roomId) {
         })
         .sort((a, b) => b.score - a.score);
 }
+
+export async function getRoomDetails(roomId, userId) {
+    const room = await prisma.Rooms.findUnique({
+        where: { id: roomId },
+    });
+
+    if (!room) throw new Error("Room not found");
+
+    const participants = await prisma.RoomUser.count({
+        where: { room_id: roomId }
+    });
+
+    const leaderboard = await getLeaderboard(roomId);
+
+    let joined = false;
+    if (userId) {
+        const exists = await prisma.RoomUser.findUnique({
+            where: {
+                room_id_user_id: { room_id: roomId, user_id: userId }
+            }
+        });
+        joined = !!exists;
+    }
+
+    return {
+        room: {
+            ...room,
+            participants_count: participants,
+        },
+        leaderboard,
+        joined
+    };
+}

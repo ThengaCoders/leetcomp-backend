@@ -48,5 +48,16 @@ export const joinRoom = async (req, res) => {
     }
 };
 
+export const fetchRoomDetails = async (req, res) => {
+    const roomId = req.params.roomId;
+    const userId = req.user?.id || null;
+
+    try {
+        const data = await roomService.getRoomDetails(roomId, userId);
+        res.json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 
