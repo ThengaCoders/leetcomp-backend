@@ -1,27 +1,8 @@
 import { prisma } from './prismaClient.js';
-
-let rooms = [
-    {
-        id: 1,
-        host_id: 1,
-        name: "Test Room A",
-        password: null,
-        entry_cost: 100,
-        start_time: new Date(),
-        end_time: new Date(),
-        image_url: null,
-        prizepool: 0,
-        created_at: new Date(),
-        updated_at: new Date()
-    }
-];
-
-let participants = [];
+import fetchLeetCodeSolved from "../services/leetcodeStatsService.js";
 
 export async function createRoom(data) {
-    if (!data) {
-        throw new Error("data missing");
-    }
+    if (!data) throw new Error("data missing");
 
     const createPayload = {
         data: {
@@ -30,16 +11,16 @@ export async function createRoom(data) {
             description: data.description ?? null,
             img_url: data.image_url ?? null,
             cost: data.cost ?? 0,
-            end_date: new Date(data.end_date)
+            end_date: new Date(data.end_date),
+            status: "ONGOING"
         }
     };
 
     try {
-        const room = await prisma.Rooms.create(createPayload);
-        return room;
+        return await prisma.Rooms.create(createPayload);
     } catch (err) {
         if (err.code === 'P2002') {
-            const target = err.meta && err.meta.target ? err.meta.target.join(',') : 'unique field';
+            const target = err.meta?.target?.join(',') || 'unique field';
             throw new Error(`Unique constraint failed on: ${target}`);
         }
         throw err;
@@ -51,49 +32,42 @@ export async function listRooms() {
 }
 
 export async function fetchRoomById(roomId) {
-    try {
-        const room = await prisma.rooms.findUnique({
-            where: { id: roomId },
-        });
-        return room;
-    } catch (error) {
-        console.error("Error fetching room by ID:", error);
-        throw error;
-    }
+    const room = await prisma.Rooms.findUnique({ where: { id: roomId } });
+    if (!room) throw new Error("Room not found");
+    return room;
 }
 
 export async function joinRoom(roomId, userId) {
-    // Check room exists
+    // Check room
     const room = await prisma.Rooms.findUnique({
         where: { id: roomId }
     });
     if (!room) throw new Error("Room does not exist");
 
-    // Check user exists
-    const user = await prisma.user.findUnique({
+    // Check user
+    const user = await prisma.User.findUnique({
         where: { id: userId }
     });
     if (!user) throw new Error("User does not exist");
 
-    // Check duplicate
-    const exists = await prisma.roomUser.findUnique({
-        where: {
-            room_id_user_id: { room_id: roomId, user_id: userId }
-        }
+    // Prevent duplicates
+    const exists = await prisma.RoomUser.findUnique({
+        where: { room_id_user_id: { room_id: roomId, user_id: userId } }
     });
     if (exists) throw new Error("Already joined");
 
-    // Create record with placeholder solved counts
+    // Fetch initial count from LC API
+    const initialCount = await fetchLeetCodeSolved(user.leetcode);
+
     return await prisma.RoomUser.create({
         data: {
             room_id: roomId,
             user_id: userId,
-            initial_qn_count: 0,
-            final_qn_count: 0
+            initial_qn_count: initialCount,
+            final_qn_count: null
         }
     });
 }
-
 
 export async function getLeaderboard(roomId) {
     const rows = await prisma.RoomUser.findMany({
@@ -110,71 +84,14 @@ export async function getLeaderboard(roomId) {
     });
 
     return rows
-        .map(r => ({
-            user: r.user,
-            initial: r.initial_qn_count,
-            final: r.final_qn_count ?? r.initial_qn_count,
-            score: (r.final_qn_count ?? r.initial_qn_count) - r.initial_qn_count
-        }))
+        .map(r => {
+            const final = r.final_qn_count ?? r.initial_qn_count;
+            return {
+                user: r.user,
+                initial: r.initial_qn_count,
+                final,
+                score: final - r.initial_qn_count
+            };
+        })
         .sort((a, b) => b.score - a.score);
 }
-
-
-export async function submitFinal(roomId, userId, finalCount) {
-    // Validate number
-    if (!Number.isInteger(finalCount)) {
-        throw new Error("final_qn_count must be an integer");
-    }
-
-    // Fetch room
-    const room = await prisma.Rooms.findUnique({
-        where: { id: roomId }
-    });
-    if (!room) throw new Error("Room not found");
-
-    const now = new Date();
-    if (now < room.end_date) {
-        throw new Error("Room has not ended yet");
-    }
-
-    // Fetch participant entry
-    const participant = await prisma.RoomUser.findUnique({
-        where: {
-            room_id_user_id: {
-                room_id: roomId,
-                user_id: userId
-            }
-        }
-    });
-
-    if (!participant) {
-        throw new Error("You are not a participant of this room");
-    }
-
-    if (participant.final_qn_count !== null) {
-        throw new Error("Final count already submitted");
-    }
-
-    // Validate logical boundaries
-    if (finalCount < participant.initial_qn_count) {
-        throw new Error("Final count cannot be less than initial count");
-    }
-
-    const MAX_DELTA = 500; // prevent cheating
-    if (finalCount > participant.initial_qn_count + MAX_DELTA) {
-        throw new Error("Unrealistic final count submitted");
-    }
-
-    // Save the final count
-    await prisma.RoomUser.update({
-        where: { id: participant.id },
-        data: {
-            final_qn_count: finalCount
-        }
-    });
-
-    return { success: true, message: "Final count submitted successfully" };
-}
-
-
-
