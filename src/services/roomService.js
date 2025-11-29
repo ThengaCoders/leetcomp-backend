@@ -139,6 +139,8 @@ export async function joinRoom(roomId, userId, leetcodeId) {
         where: { id: roomId }
     });
     if (!room) throw new Error("Room does not exist");
+    
+    if (room.cost != 0) throw new Error("I like your smartness. But don't try to be oversmart.");
 
     // Check user exists
     const user = await prisma.user.findUnique({
