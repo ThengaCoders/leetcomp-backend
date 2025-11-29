@@ -10,9 +10,17 @@ export const createOrder= async (req, res) => {
     })
 
     try{
-        const { amount, currency, receipt="rcpt_"+Date.now(), roomId=null } = req.body;
-        
-        if(!amount || !currency){
+        const { receipt="rcpt_"+Date.now(), roomId } = req.body;
+
+        const room = await prisma.rooms.findUnique({ where: { id: roomId } });
+        if (!room) {
+            return res.status(404).json({ success: false, error: "Room not found" });
+        }
+
+        const amount = room.cost;
+        const currency = "INR";
+
+        if(amount == 0){
             return res.status(400).json({
                 success:false,
                 error:"Invalid data"
@@ -33,7 +41,7 @@ export const createOrder= async (req, res) => {
             currency: order.currency,
             status: "created",
             userId: req.user.id,
-            roomId: roomId || null
+            roomId: roomId
         },
         });
         
@@ -103,7 +111,7 @@ export const webhookHandler = async (req, res) => {
     if (event.event === "payment.captured") {
       const payment = event.payload.payment.entity;
         
-      const updatedOrder=await prisma.order.updateMany({
+      const updatedOrder=await prisma.order.update({
         where: { razorpayOrderId: payment.order_id },
         data: {
           status: "paid",
