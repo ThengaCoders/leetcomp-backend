@@ -10,8 +10,6 @@ router.get("/", roomController.listRooms);
 
 router.get("/search", roomController.fetchRoomByCode);
 
-router.post("/:roomId/submit-final", auth, roomController.submitFinal);
-
 router.post("/:roomId/join", auth, roomController.joinRoom);
 
 router.get("/:roomId", roomController.fetchRoomById);

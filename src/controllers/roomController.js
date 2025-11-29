@@ -45,17 +45,5 @@ export const joinRoom = async (req, res) => {
     }
 };
 
-export const submitFinal = async (req, res) => {
-    try {
-        const roomId = req.params.roomId;
-        const userId = req.user.id;
-        const { final_qn_count } = req.body;
 
-        const result = await roomService.submitFinal(roomId, userId, final_qn_count);
-
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
 
