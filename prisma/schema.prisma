@@ -112,4 +112,3 @@ model Payout {
 
   @@unique([roomId, userId]) 
 }
-

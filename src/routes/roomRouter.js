@@ -12,8 +12,6 @@ router.get("/search", roomController.fetchRoomByCode);
 
 router.post("/:roomId/join", auth, roomController.joinRoom);
 
-router.get("/:roomId/details", auth, roomController.fetchRoomDetails);
-
 router.get("/:roomId", roomController.fetchRoomById);
 
 export default router;
