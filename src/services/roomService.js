@@ -73,10 +73,17 @@ export async function createRoom(data, userId) {
 }
 
 export async function listRooms(userId) {
-    return await prisma.Rooms.findMany({
-      where: { created_by: userId },
-    });
+  return await prisma.rooms.findMany({
+    where: {
+      participants: {
+        some: {
+          user_id: userId,
+        },
+      },
+    },
+  });
 }
+
 
 export async function fetchRoomByCode(roomCode, userId) {
     const room = await prisma.Rooms.findUnique({
