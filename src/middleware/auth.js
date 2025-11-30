@@ -1,4 +1,4 @@
-import prisma from "../prisma.js";
+import {prisma} from "../services/prismaClient.js";
 
 export default async function auth(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];

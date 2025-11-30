@@ -27,6 +27,7 @@ app.use(rateLimit({
 
 // Routes
 import authRoutes from "./routes/auth.js";
+import payout from "./routes/payout.js";
 import leetcodeRoutes from "./routes/leetcode.js";
 import paymentsRoute from "./routes/payments.js";
 import roomRouter from "./routes/roomRouter.js";
@@ -51,15 +52,18 @@ app.use(auth);
 app.use("/api", leetcodeRoutes);
 app.use("/api/rooms", roomRouter);
 app.use("/api/payments", paymentsRoute);
+app.use("/api/payout", payout);
 app.get("/time", (req, res) => {
   res.json({ now: new Date() });
 });
 
-import "./cron/roomCron.js";
 
 // Health check
 app.get("/", (req, res) => res.send("Backend running"));
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
+
