@@ -1,5 +1,5 @@
 import express from "express";
-import prisma from "../prisma.js";
+import { prisma } from "../services/prismaClient.js";
 import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
 import auth from "../middleware/auth.js";
@@ -9,9 +9,9 @@ const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post("/onboard", auth, async (req, res) => {
-  const { username, leetcode } = req.body;
+  const { username, leetcode, phone } = req.body;
 
-  if (req.user.username && req.user.leetcode) {
+  if (req.user.username && req.user.leetcode ) {
     return res.status(403).json({
       error: "Profile already completed. Cannot edit username or leetcode."
     });
@@ -21,24 +21,38 @@ router.post("/onboard", auth, async (req, res) => {
     return res.status(400).json({ error: "Username and LeetCode required" });
   }
 
-  // Check if username already taken
-  const existing = await prisma.user.findUnique({
-    where: { username }
-  });
-
-  if (existing && existing.id !== req.user.id) {
-    return res.status(409).json({ error: "Username already exists" });
+const usernameExists = await prisma.user.findFirst({
+  where: {
+    username,
+    NOT: { id: req.user.id }
   }
+});
+
+if (usernameExists) {
+  return res.status(409).json({ error: "Username already exists" });
+}
+
+// Check leetcode
+const leetcodeExists = await prisma.user.findFirst({
+  where: {
+    leetcode,
+    NOT: { id: req.user.id }
+  }
+});
+
+if (leetcodeExists) {
+  return res.status(409).json({ error: "LeetCode ID already exists" });
+}
 
   const isValid = await validateLeetCodeUsername(leetcode);
   if (!isValid) {
-    return res.status(400).json({ error: "Invalid LeetCode username" });
+    return res.status(400).json({ error: "Invalid LeetCode Id" });
   }
 
   // Update user
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: { username, leetcode }
+    data: { username, leetcode, phone }
   });
 
   res.json({ message: "Profile completed", user });

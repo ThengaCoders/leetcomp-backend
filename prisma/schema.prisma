@@ -11,14 +11,11 @@ enum RoomStatus {
   ONGOING
   FINISHED
 }
-enum PayoutStatus {
-  Pending
-  Paid
-}
+
 
 model User {
   id              String     @id @default(cuid())
-  username        String     @unique
+  username        String?     @unique
   name            String?
   googleId        String     @unique
   email           String     @unique
@@ -26,7 +23,7 @@ model User {
   picture         String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
-  phone           Int
+  phone           String?
   createdRooms    Rooms[]    @relation("room_creator")
   rooms           RoomUser[]
   sessions        Session[]
@@ -40,21 +37,21 @@ model Rooms {
   id                String      @id @default(cuid())
   room_code         Int         @unique
   description       String?
-  roomName          String
+  roomName          String?
   img_url           String?
   cost              Int
-  prizePool         Int
+  prizePool         Int?
   participant_count Int         @default(1)
   created_by        String
   created_at        DateTime    @default(now())
   end_date          DateTime
   status            RoomStatus  @default(ONGOING)
-  isPayout          boolean     @default(false)
+  isPayout          Boolean     @default(false)
   winnerUserId      String?
   createdBy         User       @relation("room_creator", fields: [created_by], references: [id])
   orders            Order[]
   participants      RoomUser[]
-  payout            Payout
+  payout            Payout[]
   @@map("rooms")
 }
 
@@ -106,7 +103,7 @@ model Payout {
   roomName    String
   amount      Int
   phone       Int
-  status      PayoutStatus   @default("Pending") 
+  status      String         @default("Pending") 
   user        User?          @relation(fields: [userId], references: [id])
   room        Rooms?         @relation(fields: [roomId], references: [id])
   utr         String?
