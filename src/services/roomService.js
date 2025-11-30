@@ -73,7 +73,7 @@ export async function createRoom(data, userId) {
 }
 
 export async function listRooms(userId) {
-  return await prisma.rooms.findMany({
+  const rooms = await prisma.rooms.findMany({
     where: {
       participants: {
         some: {
@@ -82,6 +82,11 @@ export async function listRooms(userId) {
       },
     },
   });
+
+  return rooms.map(room => ({
+    ...room,
+    isMember: true
+  }));
 }
 
 
