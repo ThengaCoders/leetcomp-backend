@@ -92,11 +92,10 @@ export const verifyPayment= async (req, res) => {
 }
 
 export const webhookHandler = async (req, res) => {
-  try {    
+  try {
     const secret = process.env.WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
-    console.log(signature);
-    
+
     const expectedSignature = crypto
       .createHmac("sha256", secret)
       .update(req.body)
@@ -110,24 +109,27 @@ export const webhookHandler = async (req, res) => {
 
     if (event.event === "payment.captured") {
       const payment = event.payload.payment.entity;
-        
-      const updatedOrder=await prisma.order.update({
-        where: { razorpayOrderId: payment.order_id },
-        data: {
-          status: "paid",
-          razorpayPaymentId: payment.id
-        }
-      });
 
-      const user = await prisma.user.findUnique({
-        where: { id: updatedOrder.userId },
-        select: { leetcode: true }
-      });
+      await prisma.$transaction(async (tx) => {
 
-      const initial_qn_count = await getLeetCodeTotalSolved(user.leetcode);
+        const updatedOrder = await tx.order.update({
+          where: { razorpayOrderId: payment.order_id },
+          data: {
+            status: "paid",
+            razorpayPaymentId: payment.id
+          }
+        });
 
-      if (updatedOrder.userId && updatedOrder.roomId) {
-        await prisma.roomUser.create({
+        if (!updatedOrder.userId || !updatedOrder.roomId) return;
+
+        const user = await tx.user.findUnique({
+          where: { id: updatedOrder.userId },
+          select: { leetcode: true }
+        });
+
+        const initial_qn_count = await getLeetCodeTotalSolved(user.leetcode);
+
+        await tx.roomUser.create({
           data: {
             user_id: updatedOrder.userId,
             room_id: updatedOrder.roomId,
@@ -135,9 +137,25 @@ export const webhookHandler = async (req, res) => {
             final_qn_count: 0
           }
         });
-      }
+
+        const room = await tx.rooms.findUnique({
+          where: { id: updatedOrder.roomId },
+          select: { cost: true }
+        });
+
+        await tx.rooms.update({
+          where: { id: updatedOrder.roomId },
+          data: {
+            participant_count: { increment: 1 },
+            prizePool: { increment: room.cost }
+          }
+        });
+
+      }); // end transaction
     }
+
     return res.status(200).send("Webhook Received");
+
   } catch (err) {
     console.log("Webhook error:", err);
     return res.status(500).send("Server error");

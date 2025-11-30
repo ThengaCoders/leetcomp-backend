@@ -1,5 +1,5 @@
 import { prisma } from './prismaClient.js';
-import fetchLeetCodeSolved from "../services/leetcodeStatsService.js";
+import fetchLeetCodeSolved from "./leetcodeStatsService.js";
 
 export async function createRoom(data, userId) {
     if (!data) throw new Error("Data is missing");
@@ -73,10 +73,22 @@ export async function createRoom(data, userId) {
 }
 
 export async function listRooms(userId) {
-    return await prisma.Rooms.findMany({
-      where: { created_by: userId },
-    });
+  const rooms = await prisma.rooms.findMany({
+    where: {
+      participants: {
+        some: {
+          user_id: userId,
+        },
+      },
+    },
+  });
+
+  return rooms.map(room => ({
+    ...room,
+    isMember: true
+  }));
 }
+
 
 export async function fetchRoomByCode(roomCode, userId) {
     const room = await prisma.Rooms.findUnique({
@@ -158,37 +170,51 @@ export async function fetchRoomById(roomId, userId) {
 }
 
 export async function joinRoom(roomId, userId, leetcodeId) {
-    // Check room exists
-    const room = await prisma.Rooms.findUnique({
-        where: { id: roomId }
-    });
-    if (!room) throw new Error("Room does not exist");
-    
-    if (room.cost != 0) throw new Error("I like your smartness. But don't try to be oversmart.");
 
-    // Check user exists
-    const user = await prisma.user.findUnique({
-        where: { id: userId }
-    });
-    if (!user) throw new Error("User does not exist");
+    return await prisma.$transaction(async (tx) => {
+        const room = await tx.rooms.findUnique({
+            where: { id: roomId }
+        });
+        if (!room) throw new Error("Room does not exist");
 
-    // Check duplicate
-    const exists = await prisma.roomUser.findUnique({
-        where: {
-            room_id_user_id: { room_id: roomId, user_id: userId }
-        }
-    });
-    if (exists) throw new Error("Already joined");
-    
-    const initial_qn_count = await getLeetCodeTotalSolved(leetcodeId);
+        if (room.cost !== 0)
+            throw new Error("I like your smartness. But don't try to be oversmart.");
 
-    // Create record with placeholder solved counts
-    return await prisma.RoomUser.create({
-        data: {
-            room_id: roomId,
-            user_id: userId,
-            initial_qn_count,
-            final_qn_count: 0
-        }
+        const user = await tx.user.findUnique({
+            where: { id: userId }
+        });
+        if (!user) throw new Error("User does not exist");
+
+        const exists = await tx.roomUser.findUnique({
+            where: {
+                room_id_user_id: {
+                    room_id: roomId,
+                    user_id: userId
+                }
+            }
+        });
+        if (exists) throw new Error("Already joined");
+
+        const initial_qn_count = await fetchLeetCodeSolved(leetcodeId);
+
+        // Add user to room
+        const joinRecord = await tx.roomUser.create({
+            data: {
+                room_id: roomId,
+                user_id: userId,
+                initial_qn_count,
+                final_qn_count: 0
+            }
+        });
+
+        await tx.rooms.update({
+            where: { id: roomId },
+            data: {
+                participant_count: { increment: 1 },
+                prizePool: { increment: room.cost }
+            }
+        });
+
+        return joinRecord;
     });
 }
