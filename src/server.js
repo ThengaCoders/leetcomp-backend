@@ -55,8 +55,6 @@ app.get("/time", (req, res) => {
   res.json({ now: new Date() });
 });
 
-import "./cron/roomCron.js";
-
 // Health check
 app.get("/", (req, res) => res.send("Backend running"));
 
