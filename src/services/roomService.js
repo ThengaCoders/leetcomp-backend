@@ -1,5 +1,5 @@
 import { prisma } from './prismaClient.js';
-import fetchLeetCodeSolved from "../services/leetcodeStatsService.js";
+import fetchLeetCodeSolved from "./leetcodeStatsService.js";
 
 export async function createRoom(data, userId) {
     if (!data) throw new Error("Data is missing");
@@ -180,7 +180,7 @@ export async function joinRoom(roomId, userId, leetcodeId) {
     });
     if (exists) throw new Error("Already joined");
     
-    const initial_qn_count = await getLeetCodeTotalSolved(leetcodeId);
+    const initial_qn_count = await fetchLeetCodeSolved(leetcodeId);
 
     // Create record with placeholder solved counts
     return await prisma.RoomUser.create({
