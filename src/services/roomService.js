@@ -2,29 +2,73 @@ import { prisma } from './prismaClient.js';
 import fetchLeetCodeSolved from "../services/leetcodeStatsService.js";
 
 export async function createRoom(data, userId) {
-    if (!data) throw new Error("data missing");
+    if (!data) throw new Error("Data is missing");
+
+    if (!data.name || typeof data.name !== "string") {
+        throw new Error("Room name is required");
+    }
+
+    if (!data.room_code || isNaN(Number(data.room_code))) {
+        throw new Error("Room code must be a valid number");
+    }
+    const room_code = Number(data.room_code);
+    if (room_code <= 0) {
+        throw new Error("Room code must be a positive integer");
+    }
+
+    if (data.cost == null || isNaN(Number(data.cost))) {
+        throw new Error("Room cost must be a valid number");
+    }
+    const cost = Number(data.cost);
+    if (cost < 0) {
+        throw new Error("Room cost cannot be negative");
+    }
+
+    if (!data.end_date) {
+        throw new Error("End date is required");
+    }
+
+    const parsedDate = new Date(data.end_date);
+
+    if (isNaN(parsedDate.getTime())) {
+        throw new Error("End date is invalid. Expected format: YYYY-MM-DD");
+    }
+
+    // Force time to midnight of that date
+    parsedDate.setHours(23, 59, 59, 999);
+
+    const now = new Date();
+    if (parsedDate <= now) {
+        throw new Error("End date must be a future date");
+    }
 
     const createPayload = {
         data: {
             created_by: userId,
-            room_code: Number(data.room_code),
+            room_code: room_code,
             roomName: data.name,
             description: data.description ?? null,
             img_url: data.image_url ?? null,
-            cost: data.cost ?? 0,
-            end_date: new Date(data.end_date),
-            status: "ONGOING"
+            cost: cost,
+            end_date: parsedDate,
+            status: "ONGOING",
+            participant_count: 0,
+            prizePool: 0
         }
     };
 
     try {
         return await prisma.Rooms.create(createPayload);
+
     } catch (err) {
-        if (err.code === 'P2002') {
-            const target = err.meta?.target?.join(',') || 'unique field';
-            throw new Error(`Unique constraint failed on: ${target}`);
+        // Unique constraint handler
+        if (err.code === "P2002") {
+            const target = err.meta?.target?.join(", ") || "unique field";
+            throw new Error(`Unique constraint failed: ${target}`);
         }
-        throw err;
+
+        console.error("Error creating room:", err);
+        throw new Error("Server error while creating room");
     }
 }
 
