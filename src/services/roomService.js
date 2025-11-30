@@ -94,7 +94,7 @@ export async function fetchRoomById(roomId, userId) {
                 select: {
                     id: true,
                     username: true,
-                    picture: true
+                    leetcode: true
                 }
             }
         }
@@ -103,7 +103,7 @@ export async function fetchRoomById(roomId, userId) {
     const formattedMembers = members.map(m => ({
         userId: m.user.id,
         username: m.user.username,
-        picture: m.user.picture,
+        leetcode: m.user.leetcode,
         initial_qn_count: m.initial_qn_count
     }));
 
