@@ -12,6 +12,7 @@ CREATE TABLE "users" (
     "picture" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "phone" TEXT,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -21,14 +22,17 @@ CREATE TABLE "rooms" (
     "id" TEXT NOT NULL,
     "room_code" INTEGER NOT NULL,
     "description" TEXT,
-    "name" TEXT NOT NULL,
+    "roomName" TEXT,
     "img_url" TEXT,
     "cost" INTEGER NOT NULL,
+    "prizePool" INTEGER,
     "participant_count" INTEGER NOT NULL DEFAULT 1,
     "created_by" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "end_date" TIMESTAMP(3) NOT NULL,
     "status" "RoomStatus" NOT NULL DEFAULT 'ONGOING',
+    "isPayout" BOOLEAN NOT NULL DEFAULT false,
+    "winnerUserId" TEXT,
 
     CONSTRAINT "rooms_pkey" PRIMARY KEY ("id")
 );
@@ -39,7 +43,7 @@ CREATE TABLE "room_user" (
     "room_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "initial_qn_count" INTEGER NOT NULL,
-    "final_qn_count" INTEGER,
+    "final_qn_count" INTEGER NOT NULL,
 
     CONSTRAINT "room_user_pkey" PRIMARY KEY ("id")
 );
@@ -72,6 +76,23 @@ CREATE TABLE "Order" (
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Payout" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "roomId" TEXT NOT NULL,
+    "roomName" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "phone" INTEGER NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'Pending',
+    "utr" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Payout_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
 
@@ -93,6 +114,9 @@ CREATE UNIQUE INDEX "Session_token_key" ON "Session"("token");
 -- CreateIndex
 CREATE UNIQUE INDEX "Order_razorpayOrderId_key" ON "Order"("razorpayOrderId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Payout_roomId_userId_key" ON "Payout"("roomId", "userId");
+
 -- AddForeignKey
 ALTER TABLE "rooms" ADD CONSTRAINT "rooms_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -110,3 +134,9 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "rooms"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Payout" ADD CONSTRAINT "Payout_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Payout" ADD CONSTRAINT "Payout_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "rooms"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
