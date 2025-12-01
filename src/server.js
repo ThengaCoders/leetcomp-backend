@@ -14,10 +14,15 @@ import auth from "./middleware/auth.js";
 const app = express();
 
 // Global middleware
-app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",                  // your local frontend
+    "https://leetcomp-frontend.vercel.app"    // your hosted frontend
+  ],
+  credentials: true,   // OK even without cookies
+}));
 
 // Rate limiter
 app.use(rateLimit({
