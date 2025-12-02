@@ -160,7 +160,8 @@ export async function fetchRoomById(roomId, userId) {
         userId: m.user.id,
         username: m.user.username,
         leetcode: m.user.leetcode,
-        initial_qn_count: m.initial_qn_count
+        initial_qn_count: m.initial_qn_count,
+        final_qn_count: m.final_qn_count
     }));
 
     return {
