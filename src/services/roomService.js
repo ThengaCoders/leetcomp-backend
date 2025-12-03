@@ -1,5 +1,6 @@
 import { prisma } from './prismaClient.js';
 import fetchLeetCodeSolved from "./leetcodeStatsService.js";
+import { forceToISTEndOfDay } from "../utils/forceToISTEndOfDay.js";
 
 export async function createRoom(data, userId) {
     if (!data) throw new Error("Data is missing");
@@ -28,14 +29,7 @@ export async function createRoom(data, userId) {
         throw new Error("End date is required");
     }
 
-    const parsedDate = new Date(data.end_date);
-
-    if (isNaN(parsedDate.getTime())) {
-        throw new Error("End date is invalid. Expected format: YYYY-MM-DD");
-    }
-
-    // Force time to midnight of that date
-    parsedDate.setHours(23, 59, 59, 999);
+    const parsedDate = forceToISTEndOfDay(data.end_date);
 
     const now = new Date();
     if (parsedDate <= now) {
