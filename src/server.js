@@ -37,6 +37,7 @@ import leetcodeRoutes from "./routes/leetcode.js";
 import paymentsRoute from "./routes/payments.js";
 import roomRouter from "./routes/roomRouter.js";
 import { webhookHandler } from "./controllers/paymentsController.js";
+import "./cron/winnerCron.js";
 
 
 // Payment webhook must use raw body
