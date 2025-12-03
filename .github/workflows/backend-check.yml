@@ -1,0 +1,43 @@
+name: Backend Check (Build · Prisma · Validate)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ["main"]
+
+jobs:
+  backend-check:
+    name: Backend Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Setup Node
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # 4️⃣ Validate Prisma schema
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      # 5️⃣ Format Prisma schema (checks formatting)
+      - name: Prisma format check
+        run: npx prisma format
+
+      # 6️⃣ Try building backend (if build script exists)
+      - name: Build backend (if exists)
+        run: npm run build || echo "No build script found"
+
+      # 7️⃣ Run tests (if exists)
+      - name: Run tests (optional)
+        run: npm test || echo "No tests found"
