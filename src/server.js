@@ -49,6 +49,9 @@ app.post(
 // Normal JSON parser after webhook
 app.use(express.json());
 
+// Health check
+app.get("/", (req, res) => res.send("Backend running"));
+
 // API routes
 app.use("/auth", authRoutes);
 
@@ -61,10 +64,6 @@ app.use("/api/payout", payout);
 app.get("/time", (req, res) => {
   res.json({ now: new Date() });
 });
-
-
-// Health check
-app.get("/", (req, res) => res.send("Backend running"));
 
 // Start server
 const PORT = process.env.PORT || 5000;
