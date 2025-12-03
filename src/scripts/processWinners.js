@@ -91,7 +91,7 @@ export const processWinners = async () => {
                 },
                 update: {}, // do nothing if already exists
                 create: {
-                    userName: winner.user.username,
+                    username: winner.user.username,
                     userId: winner.userId,
                     roomName: room.roomName,
                     roomId: room.id,
