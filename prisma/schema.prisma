@@ -102,7 +102,7 @@ model Payout {
   roomId      String
   roomName    String
   amount      Int
-  phone       Int
+  phone       String?
   status      String         @default("Pending")
   user        User?          @relation(fields: [userId], references: [id])
   room        Rooms?         @relation(fields: [roomId], references: [id])
