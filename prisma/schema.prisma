@@ -110,5 +110,5 @@ model Payout {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  @@unique([roomId, userId])
+  @@unique([roomId, userId], name: "roomId_userId")
 }

@@ -1,126 +1,142 @@
 import { prisma } from "../services/prismaClient.js";
 import fetchLeetCodeSolved from "../services/leetcodeStatsService.js";
 
-console.log("🚀 Winner Processing Script Started");
+console.log("🚀 Winner Processing Script Loaded");
 
 export const processWinners = async () => {
-    try {
-        const now = new Date();
+  const now = new Date();
+  console.log(`⏱ Checking rooms at ${now.toISOString()}`);
 
-        // 1️⃣ Find rooms that ended AND not processed yet
-        const rooms = await prisma.rooms.findMany({
-            where: {
-                end_date: { lte: now },
-                isPayout: false
-            },
-            include: {
-                participants: {
-                    include: {
-                        user: {
-                            select: {
-                                username: true,
-                                phone: true,
-                                leetcode: true,
-                            }
-                        }
-                    }
-                }
+  try {
+    // 1️⃣ Fetch rooms that ended and not processed yet
+    const rooms = await prisma.rooms.findMany({
+      where: {
+        end_date: { lte: now },
+        isPayout: false
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                phone: true,
+                leetcode: true
+              }
             }
+          }
+        }
+      }
+    });
+
+    if (!rooms.length) {
+      console.log("➡️ No rooms to process");
+      return;
+    }
+
+    console.log(`📌 Found ${rooms.length} rooms to process`);
+
+    for (const room of rooms) {
+      console.log(`\n🏁 Processing room: ${room.roomName} (${room.id})`);
+
+      // 2️⃣ Update final question counts
+      for (const participant of room.participants) {
+        const lc = participant.user.leetcode;
+        if (!lc) {
+          console.log(`⚠️ ${participant.user.username} has no LeetCode`);
+          continue;
+        }
+
+        let finalCount = participant.final_qn_count ?? 0;
+
+        try {
+          finalCount = await fetchLeetCodeSolved(lc);
+        } catch (err) {
+          console.log(`⚠️ LeetCode error for ${lc}:`, err.message);
+        }
+
+        await prisma.roomUser.update({
+          where: { id: participant.id },
+          data: { final_qn_count: finalCount }
         });
 
-        if (!rooms.length) {
-            console.log("➡️ No rooms to process");
-            return;
-        }
+        console.log(`  🔹 ${participant.user.username}: final → ${finalCount}`);
+      }
 
-        console.log(`📌 Found ${rooms.length} rooms to process`);
+      // 3️⃣ Re-fetch updated participants
+      const updated = await prisma.roomUser.findMany({
+        where: { room_id: room.id },
+        include: { user: true }
+      });
 
-        for (const room of rooms) {
+      if (!updated.length) {
+        console.log("⚠️ No participants found. Skipping.");
+        continue;
+      }
 
-            console.log(`\n🏁 Processing room: ${room.id}`);
+      // 4️⃣ Compute scores
+      const scored = updated.map(p => ({
+        ...p,
+        score: (p.final_qn_count ?? 0) - (p.initial_qn_count ?? 0)
+      }));
 
-            // 2️⃣ Update participant final counts (same as roomCron.js)
-            for (const participant of room.participants) {
-                const leetcodeUsername = participant.user.leetcode;
+      scored.sort((a, b) => b.score - a.score);
+      const topScore = scored[0].score;
 
-                if (!leetcodeUsername) {
-                    console.log(`⚠️ User ${participant.user.username} has no LeetCode username.`);
-                    continue;
-                }
+      // All winners with same top score
+      const winners = scored.filter(p => p.score === topScore);
+      const prizePerWinner = Math.floor(room.prizePool / winners.length);
 
-                const finalCount = await fetchLeetCodeSolved(leetcodeUsername);
+      console.log(`🏆 Winners: ${winners.length}, Top Score: ${topScore}`);
+      console.log(`💰 Prize each: ₹${prizePerWinner}`);
 
-                await prisma.roomUser.update({
-                    where: { id: participant.id },
-                    data: {
-                        final_qn_count: finalCount
-                    }
-                });
+      // 5️⃣ Insert payouts for all winners
+      for (const w of winners) {
+        if (!w.user?.id) continue;
 
-                console.log(`  🔹 Updated ${participant.user.username} final count → ${finalCount}`);
+        console.log(`💸 Adding payout for: ${w.user.username}`);
+
+        await prisma.payout.upsert({
+          where: {
+            roomId_userId: {
+              roomId: room.id,
+              userId: w.user.id
             }
+          },
+          update: {},
+          create: {
+            username: w.user.username,
+            userId: w.user.id,
+            roomName: room.roomName,
+            roomId: room.id,
+            amount: prizePerWinner,
+            phone: w.user.phone || null,
+            status: "Pending"
+          }
+        });
+      }
 
-            // 3️⃣ Re-fetch updated participants after updating final counts
-            const updatedParticipants = await prisma.roomUser.findMany({
-                where: { room_id: room.id },
-                include: { user: true }
-            });
-
-            // 4️⃣ Compute winner
-            const winner = updatedParticipants
-                .map(p => ({
-                    ...p,
-                    score: p.final_qn_count - p.initial_qn_count
-                }))
-                .sort((a, b) => b.score - a.score)[0];
-
-            if (!winner) {
-                console.log("⚠️ No winner found for this room.");
-                continue;
-            }
-
-            console.log(`🏆 Winner: ${winner.user.username} (Score: ${winner.score})`);
-
-            // 5️⃣ Create payout entry (using UPSERT)
-            await prisma.payout.upsert({
-                where: {
-                    roomId_userId: {
-                        roomId: room.id,
-                        userId: winner.userId,
-                    }
-                },
-                update: {}, // do nothing if already exists
-                create: {
-                    username: winner.user.username,
-                    userId: winner.userId,
-                    roomName: room.roomName,
-                    roomId: room.id,
-                    amount: room.prizePool,
-                    phone: winner.user.phone,
-                    status: "Pending"
-                }
-            });
-
-            console.log(`💸 Payout added for ${winner.user.username}`);
-
-            // 6️⃣ Mark room as processed
-            await prisma.rooms.update({
-                where: { id: room.id },
-                data: {
-                    isPayout: true,
-                    winnerUserId: winner.userId,
-                    status: "FINISHED"
-                }
-            });
-
-            console.log(`✅ Room ${room.id} marked as FINISHED & isPayout set to true`);
+      // 6️⃣ Mark room as finished
+      await prisma.rooms.update({
+        where: { id: room.id },
+        data: {
+          isPayout: true,
+          winnerUserId: winners[0]?.user?.id ?? null,
+          status: "FINISHED"
         }
+      });
 
-        console.log("\n🎉 All winners processed successfully.");
-
-    } catch (error) {
-        console.error("❌ Error processing winners:", error);
+      console.log(`🎯 Room ${room.roomName} marked as FINISHED`);
     }
+
+    console.log("\n🎉 Winner processing completed successfully.");
+
+  } catch (error) {
+    console.error("❌ Error processing winners:", error);
+  } finally {
+    await prisma.$disconnect();
+    console.log("🔌 Prisma disconnected");
+  }
 };
 
-processWinners();
