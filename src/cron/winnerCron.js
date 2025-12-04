@@ -4,7 +4,7 @@ import { processWinners } from "../scripts/processWinners.js";
 console.log("⏱  Cron service loaded");
 
 // Runs every day at 12 AM IST
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("35 10 * * *", async () => {
   try {
     console.log("⚡ Running daily winner processor...");
     await processWinners();
