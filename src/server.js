@@ -61,7 +61,7 @@ app.use(auth);
 app.use("/api", leetcodeRoutes);
 app.use("/api/rooms", roomRouter);
 app.use("/api/payments", paymentsRoute);
-app.use("/api/payout", payout);
+app.use("/api/payouts", payout);
 app.get("/time", (req, res) => {
   res.json({ now: new Date() });
 });
