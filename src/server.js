@@ -19,7 +19,9 @@ app.use(helmet());
 app.use(cors({
   origin: [
     "http://localhost:5173",                  // your local frontend
-    "https://leetcomp-frontend.vercel.app"    // your hosted frontend
+    "https://leetcomp-frontend.vercel.app",   // your hosted frontend
+    "https://leetcomp.app",
+    "https://www.leetcomp.app"
   ],
   credentials: true,   // OK even without cookies
 }));
