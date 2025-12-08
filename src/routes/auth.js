@@ -70,12 +70,11 @@ router.get("/me", auth, async (req, res) => {
 
 router.put("/me", auth, async (req, res) => {
   try {
-    const { username, leetcode, upi } = req.body;
+    const { leetcode, upi } = req.body;
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: {
-        username,
         leetcode,
         upi // if you want to store UPI here
       }
