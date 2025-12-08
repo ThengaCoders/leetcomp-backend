@@ -68,6 +68,27 @@ router.get("/me", auth, async (req, res) => {
   });
 });
 
+router.put("/me", auth, async (req, res) => {
+  try {
+    const { username, leetcode, upi } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        username,
+        leetcode,
+        upi // if you want to store UPI here
+      }
+    });
+
+    return res.json({ success: true, user: updatedUser });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+
 // Google OAuth login
 router.post("/google", async (req, res) => {
   const { credential } = req.body;
