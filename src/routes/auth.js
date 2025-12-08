@@ -64,7 +64,8 @@ router.get("/me", auth, async (req, res) => {
     email: req.user.email,
     username: req.user.username,
     leetcode: req.user.leetcode,
-    picture: req.user.picture
+    picture: req.user.picture,
+    upi: req.user.upi
   });
 });
 
