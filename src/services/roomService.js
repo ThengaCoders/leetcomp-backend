@@ -164,52 +164,65 @@ export async function fetchRoomById(roomId, userId) {
     };
 }
 
-export async function joinRoom(roomId, userId, leetcodeId) {
+export async function joinRoom(roomId, userId) {
 
-    return await prisma.$transaction(async (tx) => {
-        const room = await tx.rooms.findUnique({
-            where: { id: roomId }
-        });
-        if (!room) throw new Error("Room does not exist");
+  // STEP 1: Fetch user's LeetCode count BEFORE the transaction
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { leetcode: true }
+  });
 
-        if (room.cost !== 0)
-            throw new Error("I like your smartness. But don't try to be oversmart.");
+  if (!user) throw new Error("User does not exist");
 
-        const user = await tx.user.findUnique({
-            where: { id: userId }
-        });
-        if (!user) throw new Error("User does not exist");
+  let initial_qn_count = 0;
+  try {
+    if (user.leetcode) {
+      initial_qn_count = await fetchLeetCodeSolved(user.leetcode);
+    }
+  } catch (err) {
+    console.error("LeetCode fetch failed:", err);
+    initial_qn_count = 0; // fallback to 0
+  }
 
-        const exists = await tx.roomUser.findUnique({
-            where: {
-                room_id_user_id: {
-                    room_id: roomId,
-                    user_id: userId
-                }
-            }
-        });
-        if (exists) throw new Error("Already joined");
+  // STEP 2: Transaction only contains DB operations (safe)
+  return prisma.$transaction(async (tx) => {
 
-        const initial_qn_count = await fetchLeetCodeSolved(leetcodeId);
+    const room = await tx.rooms.findUnique({ where: { id: roomId } });
+    if (!room) throw new Error("Room does not exist");
 
-        // Add user to room
-        const joinRecord = await tx.roomUser.create({
-            data: {
-                room_id: roomId,
-                user_id: userId,
-                initial_qn_count,
-                final_qn_count: 0
-            }
-        });
+    if (room.cost !== 0)
+      throw new Error("Only free rooms can be joined here");
 
-        await tx.rooms.update({
-            where: { id: roomId },
-            data: {
-                participant_count: { increment: 1 },
-                prizePool: { increment: room.cost }
-            }
-        });
-
-        return joinRecord;
+    // Already joined?
+    const exists = await tx.roomUser.findUnique({
+      where: {
+        room_id_user_id: {
+          room_id: roomId,
+          user_id: userId
+        }
+      }
     });
+    if (exists) throw new Error("Already joined");
+
+    // Add user to the room
+    const joinRecord = await tx.roomUser.create({
+      data: {
+        room_id: roomId,
+        user_id: userId,
+        initial_qn_count,
+        final_qn_count: 0
+      }
+    });
+
+    // Update room stats
+    await tx.rooms.update({
+      where: { id: roomId },
+      data: {
+        participant_count: { increment: 1 },
+        prizePool: { increment: room.cost }
+      }
+    });
+
+    return joinRecord;
+  });
 }

@@ -69,6 +69,25 @@ router.get("/me", auth, async (req, res) => {
   });
 });
 
+router.put("/me/avatar", auth, async (req, res) => {
+  try {
+    const { avatarUrl } = req.body;
+    if (!avatarUrl)
+      return res.status(400).json({ error: "No avatar URL provided" });
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { picture: avatarUrl }
+    });
+
+    return res.json({ picture: user.picture });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to update avatar" });
+  }
+});
+
+
 router.put("/me", auth, async (req, res) => {
   try {
     const { leetcode, upi } = req.body;
@@ -90,6 +109,7 @@ router.put("/me", auth, async (req, res) => {
 
 
 // Google OAuth login
+// Google OAuth login
 router.post("/google", async (req, res) => {
   const { credential } = req.body;
 
@@ -102,17 +122,26 @@ router.post("/google", async (req, res) => {
     const payload = ticket.getPayload();
     const { sub, email, name, picture } = payload;
 
+    // Fetch existing user (IMPORTANT)
+    const existingUser = await prisma.user.findUnique({
+      where: { googleId: sub }
+    });
+
+    // Use Google picture ONLY if user does NOT have a custom one
+    const finalPicture =
+      existingUser && existingUser.picture
+        ? existingUser.picture
+        : picture;
+
     // Create or update user
     const user = await prisma.user.upsert({
       where: { googleId: sub },
-      update: { email, name, picture },
-      create: { googleId: sub, email, name, picture },
+      update: { email, name, picture: finalPicture },
+      create: { googleId: sub, email, name, picture: finalPicture },
     });
 
-    // Detect whether they need onboarding
     const onboardingRequired = !user.username || !user.leetcode;
 
-    // Create session ALWAYS
     const session = await prisma.session.create({
       data: {
         userId: user.id,
@@ -121,7 +150,6 @@ router.post("/google", async (req, res) => {
       },
     });
 
-    // Final response
     res.json({
       success: true,
       token: session.token,
@@ -134,6 +162,7 @@ router.post("/google", async (req, res) => {
     res.status(400).json({ error: "Invalid Google token" });
   }
 });
+
 
 
 router.post("/logout", async (req, res) => {
