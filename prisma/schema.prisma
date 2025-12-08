@@ -23,6 +23,7 @@ model User {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   phone           String?
+  upi             String?
   createdRooms    Rooms[]    @relation("room_creator")
   rooms           RoomUser[]
   sessions        Session[]
