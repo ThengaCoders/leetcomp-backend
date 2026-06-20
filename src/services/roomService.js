@@ -150,17 +150,36 @@ export async function fetchRoomById(roomId, userId) {
         }
     });
 
-    const formattedMembers = members.map(m => ({
-        userId: m.user.id,
-        username: m.user.username,
-        leetcode: m.user.leetcode,
-        initial_qn_count: m.initial_qn_count,
-        final_qn_count: m.final_qn_count
-    }));
+    // 🚀 NEW LOGIC: Calculate live scores and sort the leaderboard
+    const enrichedMembers = await Promise.all(
+        members.map(async (m) => {
+            let finalCount = m.final_qn_count || 0;
+
+            // Only fetch live LeetCode stats if the room is still active
+            if (room.status === "ONGOING" && m.user.leetcode) {
+                finalCount = await fetchLeetCodeSolved(m.user.leetcode);
+            }
+
+            // Calculate score
+            const score = finalCount - m.initial_qn_count;
+
+            return {
+                userId: m.user.id,
+                username: m.user.username,
+                leetcode: m.user.leetcode,
+                initial_qn_count: m.initial_qn_count,
+                final_qn_count: finalCount,
+                score: score // Include the calculated score
+            };
+        })
+    );
+
+    // Sort highest score to lowest score
+    enrichedMembers.sort((a, b) => b.score - a.score);
 
     return {
         room,
-        members: formattedMembers
+        members: enrichedMembers
     };
 }
 
